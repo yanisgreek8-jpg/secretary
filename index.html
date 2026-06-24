@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#515b6e">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Секретарь">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Секретарь разговора</title>
+<style>
+:root{
+  color-scheme: light;
+  --brand:#515b6e; --brand-d:#3f4757; --brand-soft:#eceef2;
+  --bg:#f5f6f7; --card:#ffffff; --ink:#1f2430; --mut:#7c8493; --line:#e7e9ee;
+  --task:#a96a18; --task-bg:#faf6ef; --task-br:#e9dec9;
+  --dec:#3f7059; --dec-bg:#f1f5f3; --dec-br:#d2e0d8;
+  --q:#4f5985; --q-bg:#f2f3f8; --q-br:#dadeec;
+  --note:#5a6473; --note-bg:#f2f4f7; --note-br:#e1e5ec;
+  --star:#917528; --star-bg:#f8f5ec;
+  --rec:#bf4b45;
+  --shadow:0 1px 2px rgba(20,26,43,.04),0 6px 18px -12px rgba(20,26,43,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:18px 18px 40px}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#5b6577,#838d9f);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:var(--shadow)}
+.topbar h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
+.topbar .sub{color:var(--mut);font-size:12.5px;margin-top:1px}
+.meta{display:grid;grid-template-columns:2fr 1fr 1.4fr;gap:10px;margin-bottom:16px}
+@media(max-width:680px){.meta{grid-template-columns:1fr}}
+.field{position:relative}
+.field label{position:absolute;top:6px;left:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.field input{width:100%;border:1px solid var(--line);border-radius:11px;padding:22px 12px 8px;font-size:13.5px;background:var(--card);color:var(--ink);transition:.15s}
+.field input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.console{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:10px}
+.crow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.recBtn{display:flex;align-items:center;gap:11px;border:none;border-radius:13px;padding:13px 20px;font-size:15px;font-weight:700;color:#fff;background:var(--rec);cursor:pointer;box-shadow:0 6px 18px -6px rgba(226,56,56,.6);transition:.18s}
+.recBtn:hover{transform:translateY(-1px)}
+.recBtn .ico{width:13px;height:13px;border-radius:50%;background:#fff}
+.recBtn.live{background:#11151f;box-shadow:0 6px 18px -6px rgba(0,0,0,.4)}
+.recBtn.live .ico{border-radius:3px;width:12px;height:12px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+.wave{display:flex;align-items:center;gap:3px;height:30px}
+.wave span{width:3px;height:6px;background:var(--brand);border-radius:3px;opacity:.35}
+.wave.on span{animation:bounce 1s infinite ease-in-out}
+.wave.on span:nth-child(2){animation-delay:.12s}.wave.on span:nth-child(3){animation-delay:.24s}.wave.on span:nth-child(4){animation-delay:.36s}.wave.on span:nth-child(5){animation-delay:.18s}.wave.on span:nth-child(6){animation-delay:.30s}.wave.on span:nth-child(7){animation-delay:.06s}
+@keyframes bounce{0%,100%{height:6px;opacity:.4}50%{height:26px;opacity:1}}
+.timer{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.status{font-size:12.5px;color:var(--mut)}
+.spkbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.spkbar .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin-right:2px}
+.chip{border:1.5px solid transparent;border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:700;cursor:pointer;transition:.14s;opacity:.65}
+.chip:hover{opacity:.95}
+.chip.on{opacity:1;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.chipAdd{border:1.5px dashed #c7ccda;background:transparent;color:var(--mut);border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:700;cursor:pointer}
+.chipAdd:hover{border-color:var(--brand);color:var(--brand)}
+.vrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.vchk{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer}
+.vmeter{position:relative;width:120px;height:8px;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.vmeter span{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#0f9d58,#e08a00,#e23838)}
+.vrange{accent-color:var(--brand);width:120px}
+.vlbl{font-size:11.5px;color:var(--mut);font-weight:600}
+.vhint{font-size:11.5px;color:var(--mut)}
+.archrow{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px}
+.archrow .ai{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.archrow .ai span{color:var(--mut);font-size:11.5px}
+.archrow .ab{display:flex;gap:6px;flex-wrap:wrap}
+.archrow .ab .btn{padding:7px 11px;font-size:12px}
+.saveline{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mut);margin:0 2px 16px}
+.saveline .dotg{width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.15)}
+.saveline.off .dotg{background:#cbd0db;box-shadow:none}
+.banner{background:#fffaf0;border:1px solid #f2e2bd;color:#82610f;border-radius:12px;padding:11px 14px;font-size:12.5px;margin-bottom:16px;display:none;line-height:1.5}
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+.card>.head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.card>.head h2{font-size:12px;margin:0;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.count{background:var(--brand-soft);color:var(--brand);border-radius:999px;font-size:11px;padding:1px 8px;font-weight:700;min-width:20px;text-align:center}
+.interim{color:var(--brand);font-style:italic;min-height:18px;font-size:13px;padding:0 2px 6px}
+.feed{max-height:48vh;overflow:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
+.feed::-webkit-scrollbar{width:7px}.feed::-webkit-scrollbar-thumb{background:#dfe3ec;border-radius:6px}
+.feedempty{color:var(--mut);font-size:13px;text-align:center;padding:26px 10px;border:1px dashed var(--line);border-radius:12px}
+.line{border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--card);animation:slidein .22s ease}
+@keyframes slidein{from{opacity:0;transform:translateY(4px)}}
+.line.t-task{background:var(--task-bg);border-color:var(--task-br)}
+.line.t-dec{background:var(--dec-bg);border-color:var(--dec-br)}
+.line.t-q{background:var(--q-bg);border-color:var(--q-br)}
+.line .row1{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.line .tc{color:var(--mut);font-size:11px;font-variant-numeric:tabular-nums}
+.who{font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:1px 8px;border-radius:7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line .star{margin-left:auto;cursor:pointer;color:#cdd3df;font-size:16px;line-height:1;transition:.15s}
+.line .star:hover{color:var(--star)}
+.line .star.on{color:var(--star)}
+.line .txt{font-size:13.5px}
+.tagrow{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.pill{font-size:10.5px;font-weight:700;border-radius:7px;padding:2px 8px;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:.12s}
+.pill.task{color:var(--task);background:#f0e6d3}.pill.dec{color:var(--dec);background:#dde9e1}
+.pill.q{color:var(--q);background:#e0e4ef}.pill.note{color:var(--note);background:#e7ebf1}
+.tagrow .pill{opacity:.4}
+.tagrow .pill:hover{opacity:.8}
+.tagrow .pill.sel{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.06)}
+.addrow{display:flex;gap:8px;margin-top:12px}
+.addrow input{flex:1;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:13.5px;background:var(--bg)}
+.addrow input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:var(--card)}
+.addBtn{border:none;background:var(--brand);color:#fff;border-radius:11px;padding:0 18px;font-size:18px;font-weight:600;cursor:pointer}
+.addBtn:hover{background:var(--brand-d)}
+.hint{font-size:11.5px;color:var(--mut);margin-top:9px}
+.hint kbd{background:var(--bg);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:10.5px}
+.bk{border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:10px}
+.bk.task{background:var(--task-bg);border-color:var(--task-br)}
+.bk.dec{background:var(--dec-bg);border-color:var(--dec-br)}
+.bk.q{background:var(--q-bg);border-color:var(--q-br)}
+.bk.star{background:var(--star-bg);border-color:#f2dca6}
+.bk .bh{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;margin-bottom:7px}
+.bk .bh .ic{font-size:14px}
+.bk .bh .count{margin-left:auto}
+.bk.task .count{background:#ecdfc9;color:var(--task)}
+.bk.dec .count{background:#d6e3da;color:var(--dec)}
+.bk.q .count{background:#dde1ed;color:var(--q)}
+.bk.star .count{background:#e9ddc2;color:var(--star)}
+.bk ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.bk li{font-size:13px;background:rgba(255,255,255,.65);border-radius:9px;padding:6px 9px}
+.bk li .mini{color:var(--mut);font-size:10.5px;display:block;margin-bottom:1px}
+.empty{color:var(--mut);font-size:12px;font-style:italic;background:transparent!important;padding:2px 0!important}
+.foot{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+.btn{font-family:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 15px;cursor:pointer;font-weight:600;box-shadow:var(--shadow);transition:.15s}
+.btn:hover{border-color:#cdd3df}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-d)}
+.btn.ghost{box-shadow:none;background:transparent;color:var(--mut)}
+#protoOut{display:none;margin-top:14px;white-space:pre-wrap;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;color:#222}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="logo">🗒️</div>
+    <div>
+      <h1>Секретарь разговора</h1>
+      <div class="sub">Слушает разговор и раскладывает его на задачи, решения, вопросы и заметки</div>
+    </div>
+  </div>
+
+  <div id="banner" class="banner"></div>
+
+  <div class="meta">
+    <div class="field"><label>Тема</label><input id="mTitle" placeholder="напр. Планёрка отдела продаж"></div>
+    <div class="field"><label>Дата</label><input id="mDate"></div>
+    <div class="field"><label>Участники</label><input id="mPeople" placeholder="имена через запятую"></div>
+  </div>
+
+  <div class="console">
+    <div class="crow">
+      <button id="btnRec" class="recBtn"><span class="ico"></span><span id="recLbl">Слушать</span></button>
+      <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div>
+        <div class="timer" id="timer">00:00</div>
+        <div class="status" id="status">Готов к записи</div>
+      </div>
+    </div>
+    <div class="spkbar" id="spkbar"><span class="lbl">Кто говорит</span></div>
+    <div class="vrow">
+      <label class="vchk"><input type="checkbox" id="autoVoice"> Различать мой голос по громкости</label>
+      <div class="vmeter" title="Уровень звука с микрофона"><span id="vbar"></span></div>
+      <span class="vlbl">Порог</span>
+      <input type="range" id="vth" min="4" max="50" value="16" class="vrange">
+      <span class="vhint">тихо — собеседник · громко — я</span>
+    </div>
+  </div>
+  <div class="saveline" id="saveline"><span class="dotg"></span><span id="saveTxt">Автосохранение в браузере включено</span></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="head"><h2>Лента разговора</h2><span class="count" id="cFeed">0</span></div>
+      <div class="interim" id="interim"></div>
+      <div class="feed" id="feed"></div>
+      <div class="addrow">
+        <input id="manual" placeholder="Дописать реплику вручную…">
+        <button id="btnAdd" class="addBtn">+</button>
+      </div>
+      <div class="hint">Перед фразой жми, <b>кто говорит</b>. Метки под репликой переключаются вручную. <kbd>★</kbd> — важное · <kbd>Enter</kbd> — добавить.</div>
+    </div>
+
+    <div class="card">
+      <div class="head"><h2>Итоги на лету</h2></div>
+      <div class="bk task"><div class="bh"><span class="ic">📌</span>Задачи<span class="count" id="cTask">0</span></div><ul id="bTask"><li class="empty">пока нет</li></ul></div>
+      <div class="bk dec"><div class="bh"><span class="ic">✅</span>Решения<span class="count" id="cDec">0</span></div><ul id="bDec"><li class="empty">пока нет</li></ul></div>
+      <div class="bk q"><div class="bh"><span class="ic">❓</span>Вопросы<span class="count" id="cQ">0</span></div><ul id="bQ"><li class="empty">пока нет</li></ul></div>
+      <div class="bk star"><div class="bh"><span class="ic">⭐</span>Важное<span class="count" id="cStar">0</span></div><ul id="bStar"><li class="empty">пока нет</li></ul></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button id="btnProto" class="btn primary">📋 Собрать протокол</button>
+    <button id="btnSaveMeet" class="btn">🗃 Сохранить встречу</button>
+    <button id="btnArch" class="btn">🗂 Архив</button>
+    <button id="btnImport" class="btn">📥 Импорт расшифровки</button>
+    <button id="btnCopy" class="btn">Скопировать</button>
+    <button id="btnDl" class="btn">Скачать .txt</button>
+    <button id="btnClear" class="btn ghost">Очистить</button>
+  </div>
+
+  <div id="archBox" class="card" style="display:none;margin-top:14px">
+    <div style="font-weight:700;margin-bottom:4px">Архив встреч</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:10px">Сохранённые разговоры. «Открыть» — посмотреть и собрать протокол, «Скачать .txt» — выгрузить, чтобы прислать мне на итог.</div>
+    <div id="archList"></div>
+  </div>
+
+  <div id="importBox" class="card" style="display:none;margin-top:14px">
+    <div style="font-weight:700;margin-bottom:6px">Импорт расшифровки с говорящими</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:9px;line-height:1.55">Вставь текст из сервиса разделения голосов. Каждая строка вида <b>«Говорящий 1: …»</b>, <b>«Speaker 2: …»</b> или <b>«Имя: …»</b>. Метка времени в начале строки — по желанию. Секретарь разложит реплики по людям и типам.</div>
+    <textarea id="importTa" style="width:100%;min-height:150px;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:13px;font-family:inherit;resize:vertical" placeholder="Говорящий 1: Здравствуйте, давайте начнём планёрку.&#10;Говорящий 2: Да, нужно проверить остатки по лавашу."></textarea>
+    <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="impReplace">заменить текущую ленту</label>
+      <button id="btnDoImport" class="btn primary" style="margin-left:auto">Загрузить в ленту</button>
+    </div>
+    <div id="impMsg" style="font-size:12px;color:var(--mut);margin-top:9px"></div>
+  </div>
+  <div id="protoOut" class="card"></div>
+</div>
+
+<script>
+(function(){
+  var KEY='meetingSecretary.v2';
+  var lines=[], seq=0, startTs=null, elapsed=0, timerInt=null, recog=null, listening=false, canStore=true;
+  var speakers=['Я','Собеседник'], curWho='Я';
+  var autoVoice=false, voThresh=16, curVol=0, uttMax=0, micStream=null, audioCtx=null, analyser=null, voBuf=null;
+  var ARCH='meetingSecretary.archive', archive=[];
+
+  var PAL=[
+    {fg:'#4f46e5',bg:'#eef0fe'},{fg:'#9333ea',bg:'#f4ecff'},{fg:'#0f9d58',bg:'#ecfaf1'},
+    {fg:'#d6510a',bg:'#fff3ec'},{fg:'#0891b2',bg:'#e6f6fb'},{fg:'#be185d',bg:'#fdebf3'},
+    {fg:'#ca8a04',bg:'#fef6e0'},{fg:'#475569',bg:'#eef1f6'}
+  ];
+  function spStyle(name){var i=speakers.indexOf(name);if(i<0)i=7;return PAL[i%PAL.length];}
+
+  var DEC=/(решили|договорились|утвержда|утверд|приня(?:л[иo]|то)|по\s+итог|остановились|постанов|договор[её]нност|фиксиру|закрепля|остаёмся\s+на|остановимся\s+на|едем\s+по)/i;
+  var QSTART=/^\s*(?:а\s+)?(?:что|как|почему|зачем|когда|сколько|кто|где|какой|кака[яую]|каки[ехм]|можно\s+ли|стоит\s+ли|нужно\s+ли|правда\s+ли|правильно\s+ли|верно\s+ли|а\s+(?:он|она|оно|это|вы|ты|у\s+нас|мы))/i;
+  function isQuestion(t){return /\?\s*$/.test(t)||QSTART.test(t);}
+  var IMP=/(поручаю|поруч[иь]те?|сделай(?:те)?|подготов(?:ь|ьте|им)|отправ(?:ь|ьте|им|ить)|перезвони(?:те)?|выстав(?:ь|ите|им|ить)|закаж(?:и|ите|ем)|заказать|оформ(?:и|ите|им|ить)|нужно\s+чтобы|надо\s+чтобы|до\s+(?:понедельник|вторник|сред|четверг|пятниц|суббот|воскресень|конца|завтра)|к\s+(?:понедельник|вторник|сред|четверг|пятниц)|дедлайн|срок\b)/i;
+  var PASTDONE=/(уже\s+(?:сделал|сделан|готов|выставил|отправил|проверил|посчитал|настроил|рассчита)|сделали|сделано|готово\b|выполнен|выполнили|доделал|помните|как-то\s+делали|раньше|давно\b|на\s+прошл|в\s+прошлый\s+раз|мы\s+(?:же\s+)?(?:уже\s+)?делали|уже\s+есть|рассчитывает|считает\s+правильно|работает\s+правильно)/i;
+  var TASKW=/(надо|нужно|нужен|нужна|необходимо|подготов|отправ|перезвон|выстав|закаж|заказать|провер[ьия]|согласу|согласовать|оформ|сделать|сделаем|займ[ия]сь|поставить|внести|настроить|посчитать)/i;
+  function classify(t){
+    if(DEC.test(t))return'dec';
+    if(isQuestion(t)&&!IMP.test(t))return'q';
+    if(PASTDONE.test(t)&&!IMP.test(t))return'note';
+    if(IMP.test(t)||TASKW.test(t))return'task';
+    return'note';
+  }
+  function tlabel(s){var m=Math.floor(s/60),x=s%60;return(m<10?'0':'')+m+':'+(x<10?'0':'')+x;}
+  function nowOffset(){if(startTs===null)return elapsed;return elapsed+Math.floor((Date.now()-startTs)/1000);}
+  var el=function(id){return document.getElementById(id);};
+  function pad2(n){return(n<10?'0':'')+n;}
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function save(){
+    if(!canStore)return;
+    try{
+      localStorage.setItem(KEY,JSON.stringify({lines:lines,seq:seq,elapsed:nowOffset(),speakers:speakers,curWho:curWho,
+        title:el('mTitle').value,date:el('mDate').value,ts:Date.now()}));
+      var d=new Date();el('saveTxt').textContent='Сохранено · '+pad2(d.getHours())+':'+pad2(d.getMinutes());el('saveline').classList.remove('off');
+    }catch(_){canStore=false;el('saveTxt').textContent='Автосохранение недоступно в этом окне — открой отдельным окном в Chrome';el('saveline').classList.add('off');}
+  }
+  function load(){
+    var raw=null;
+    try{raw=localStorage.getItem(KEY);}catch(_){canStore=false;el('saveTxt').textContent='Автосохранение недоступно в этом окне — открой отдельным окном в Chrome';el('saveline').classList.add('off');return false;}
+    if(!raw)return false;
+    try{var d=JSON.parse(raw);
+      lines=d.lines||[];seq=d.seq||0;elapsed=d.elapsed||0;
+      speakers=(d.speakers&&d.speakers.length)?d.speakers:['Я','Собеседник'];
+      curWho=d.curWho&&speakers.indexOf(d.curWho)>=0?d.curWho:speakers[0];
+      el('mTitle').value=d.title||'';el('mDate').value=d.date||new Date().toLocaleDateString('ru-RU');
+      el('timer').textContent=tlabel(elapsed);
+      if(d.ts){var dt=new Date(d.ts);el('saveTxt').textContent='Восстановлено · сохранено '+pad2(dt.getHours())+':'+pad2(dt.getMinutes());}
+      return true;
+    }catch(_){return false;}
+  }
+
+  function syncPeopleField(){el('mPeople').value=speakers.filter(function(s){return s!=='Я';}).join(', ');}
+  function renderSpeakers(){
+    var bar=el('spkbar');bar.innerHTML='<span class="lbl">Кто говорит</span>';
+    speakers.forEach(function(name){
+      var st=spStyle(name);var b=document.createElement('button');
+      b.className='chip'+(name===curWho?' on':'');b.textContent=name;
+      b.style.color=st.fg;b.style.background=st.bg;b.style.borderColor=name===curWho?st.fg:'transparent';
+      b.onclick=function(){curWho=name;renderSpeakers();save();};
+      bar.appendChild(b);
+    });
+    var add=document.createElement('button');add.className='chipAdd';add.textContent='+ участник';
+    add.onclick=function(){var n=prompt('Имя участника:');if(n){n=n.trim();if(n&&speakers.indexOf(n)<0){speakers.push(n);curWho=n;}renderSpeakers();syncPeopleField();save();}};
+    bar.appendChild(add);
+  }
+  el('mPeople').addEventListener('input',function(){
+    var names=el('mPeople').value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+    var seen={},uniq=[];names.forEach(function(n){if(!seen[n.toLowerCase()]){seen[n.toLowerCase()]=1;uniq.push(n);}});
+    speakers=['Я'].concat(uniq.length?uniq:['Собеседник']);
+    if(speakers.indexOf(curWho)<0)curWho=speakers[0];
+    renderSpeakers();save();
+  });
+
+  function addLine(text,who){text=(text||'').trim();if(!text)return;var L={id:++seq,t:nowOffset(),who:who||curWho,text:text,type:classify(text),star:false};lines.push(L);appendOne(L);scheduleSummary();}
+  var TYPES={task:'Задача',dec:'Решение',q:'Вопрос',note:'Заметка'};
+
+  /* ── приведение реплики к деловой формулировке ── */
+  var FILLER=/(?<=^|[\s,.;:!?«»"'()\-])(?:ну|вот|как бы|типа|короче|в общем|в принципе|значит|так сказать|собственно|получается|слушай(?:те)?|смотри(?:те)?|понимаешь|знаешь|то есть|так вот|в смысле|это самое|блин)(?=$|[\s,.;:!?«»"'()\-])/gi;
+  var LEADRE=/^(?:а|и|но|так|ну|вот|да|окей|ок|ладно|хорошо|один момент|секунд[ауы]|минут[ауку]|подожди|погоди|давайте|давай|значит|короче|я думаю|наверное)[\s,]+/i;
+  var STARTPHRASE=/^(?:мы можем|можем вот|можем|нам надо|нам нужно|надо бы|нужно бы|надо|нужно|давайте|давай|что сделать сейчас|вот что сделать|я предлагаю|предлагаю)[\s,]+/i;
+  var TAILRE=/\s+и\s+(?:он|она|оно|они|это)\s+(?:сможет|сможем|смогут|будет|будут|станет)(?=[\s.,!?]|$).*$/i;
+  var V1PL={'добавим':'добавить','сделаем':'сделать','отправим':'отправить','проверим':'проверить','закажем':'заказать','согласуем':'согласовать','подготовим':'подготовить','выставим':'выставить','перезвоним':'перезвонить','оформим':'оформить','соберём':'собрать','соберем':'собрать','напишем':'написать','посчитаем':'посчитать','обсудим':'обсудить','решим':'решить','уточним':'уточнить','пришлём':'прислать','пришлем':'прислать','внесём':'внести','внесем':'внести','поставим':'поставить','запустим':'запустить','настроим':'настроить','свяжемся':'связаться','договоримся':'договориться','сформируем':'сформировать','исправим':'исправить','учтём':'учесть','учтем':'учесть'};
+  function capF(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+  function tidy(raw){
+    var t=' '+(raw||'')+' ';
+    t=t.replace(FILLER,' ').replace(/\s+/g,' ').replace(/\s+([,.;:!?])/g,'$1').trim();
+    for(var i=0;i<4;i++){var n=t.replace(LEADRE,'');if(n===t)break;t=n;}
+    t=t.replace(/^[,\s]+/,'').trim();
+    return t?capF(t):(raw||'');
+  }
+  function polishTask(raw){
+    var t=' '+(raw||'')+' ';
+    t=t.replace(FILLER,' ').replace(/\s+/g,' ').trim();
+    for(var i=0;i<5;i++){var n=t.replace(LEADRE,'');if(n===t)break;t=n;}
+    for(var j=0;j<3;j++){var m=t.replace(STARTPHRASE,'');if(m===t)break;t=m;}
+    var words=t.split(/\s+/);
+    for(var k=0;k<Math.min(words.length,6);k++){
+      var w=words[k].toLowerCase().replace(/[.,!?;:]/g,'');
+      if(V1PL[w]){words=words.slice(k);words[0]=V1PL[w];t=words.join(' ');break;}
+    }
+    t=t.replace(TAILRE,'').replace(/\s+([,.;:!?])/g,'$1').replace(/[\s,]+$/,'').trim();
+    if(t.split(/\s+/).filter(Boolean).length<2)return tidy(raw);
+    t=capF(t);if(!/[.!?]$/.test(t))t+='.';
+    return t;
+  }
+
+  /* ── импорт расшифровки с метками говорящих (после диаризации) ── */
+  function parseTs(s){var p=s.split(':').map(Number);return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];}
+  function normSpk(word,id){word=(word||'').toLowerCase();return 'Говорящий '+String(id).toUpperCase();}
+  function parseDiarized(raw){
+    var out={lines:[],speakers:[]},seen={};
+    (raw||'').split(/\r?\n/).forEach(function(ln){
+      var line=ln.trim();if(!line)return;
+      var t=null,tm=line.match(/^[\[\(]?\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*[\]\)]?\s+/);
+      if(tm){t=parseTs(tm[1]);line=line.slice(tm[0].length).trim();}
+      var who=null,text=null;
+      var sm=line.match(/^(?:(speaker|говорящий|спикер|спікер)\s*[#:]?\s*([0-9]+|[a-zа-яё]))\s*[:\-–—]\s*(.+)$/i);
+      if(sm){who=normSpk(sm[1],sm[2]);text=sm[3];}
+      else{var gm=line.match(/^([^:：]{1,24}?)\s*[:：]\s*(.+)$/);
+        if(gm&&!/[.!?]$/.test(gm[1])&&gm[1].split(/\s+/).length<=3){who=gm[1].trim();text=gm[2];}}
+      if(!text){if(out.lines.length)out.lines[out.lines.length-1].text+=' '+line;return;}
+      if(t===null)t=out.lines.length?out.lines[out.lines.length-1].t:0;
+      if(!seen[who.toLowerCase()]){seen[who.toLowerCase()]=1;out.speakers.push(who);}
+      out.lines.push({t:t,who:who,text:text.trim()});
+    });
+    return out;
+  }
+
+  function lineNode(L){
+    var st=spStyle(L.who);
+    var d=document.createElement('div');d.className='line t-'+L.type;d.dataset.lid=L.id;
+    var tags='';['task','dec','q','note'].forEach(function(tp){tags+='<span class="pill '+tp+(L.type===tp?' sel':'')+'" data-id="'+L.id+'" data-tp="'+tp+'">'+TYPES[tp]+'</span>';});
+    d.innerHTML='<div class="row1"><span class="who" style="color:'+st.fg+';background:'+st.bg+'">'+esc(L.who)+'</span><span class="tc">'+tlabel(L.t)+'</span><span class="star'+(L.star?' on':'')+'" data-star="'+L.id+'">★</span></div>'+
+      '<div class="txt">'+esc(L.text)+'</div><div class="tagrow">'+tags+'</div>';
+    return d;
+  }
+  var EMPTY='<div class="feedempty">Нажми «Слушать» и говори — или впиши первую реплику вручную внизу.<br>Реплики появятся здесь и сами разложатся по типам.</div>';
+  function render(){
+    var feed=el('feed');feed.innerHTML='';
+    if(!lines.length){feed.innerHTML=EMPTY;}
+    else{var fr=document.createDocumentFragment();lines.forEach(function(L){fr.appendChild(lineNode(L));});feed.appendChild(fr);}
+    feed.scrollTop=feed.scrollHeight;
+    refreshSummary();
+  }
+  function appendOne(L){
+    var feed=el('feed');var em=feed.querySelector('.feedempty');if(em)feed.innerHTML='';
+    var near=feed.scrollHeight-feed.scrollTop-feed.clientHeight<80;
+    feed.appendChild(lineNode(L));
+    if(near)feed.scrollTop=feed.scrollHeight;
+  }
+  function refreshSummary(){
+    el('cFeed').textContent=lines.length;
+    bucket('task','bTask','cTask');bucket('dec','bDec','cDec');bucket('q','bQ','cQ');starBucket();
+  }
+  var sumT=null,saveT=null;
+  function scheduleSummary(){if(sumT)return;sumT=setTimeout(function(){sumT=null;refreshSummary();queueSave();},700);}
+  function queueSave(){if(saveT)clearTimeout(saveT);saveT=setTimeout(function(){saveT=null;save();},1200);}
+  function flushSave(){if(saveT){clearTimeout(saveT);saveT=null;}if(sumT){clearTimeout(sumT);sumT=null;}refreshSummary();save();}
+  function bucket(type,ulId,cId){
+    var arr=lines.filter(function(L){return L.type===type;});el(cId).textContent=arr.length;var ul=el(ulId);
+    if(!arr.length){ul.innerHTML='<li class="empty">пока нет</li>';return;}
+    var fmt=(type==='task')?polishTask:tidy;
+    ul.innerHTML=arr.map(function(L){return '<li><span class="mini">'+tlabel(L.t)+' · '+esc(L.who)+'</span>'+esc(fmt(L.text))+'</li>';}).join('');
+  }
+  function starBucket(){
+    var arr=lines.filter(function(L){return L.star;});el('cStar').textContent=arr.length;var ul=el('bStar');
+    if(!arr.length){ul.innerHTML='<li class="empty">пока нет</li>';return;}
+    ul.innerHTML=arr.map(function(L){return '<li><span class="mini">'+tlabel(L.t)+' · '+esc(L.who)+'</span>'+esc(tidy(L.text))+'</li>';}).join('');
+  }
+
+  el('feed').addEventListener('click',function(e){
+    var p=e.target.closest('[data-tp]');if(p){var L=find(+p.dataset.id);if(L){L.type=p.dataset.tp;render();save();}return;}
+    var s=e.target.closest('[data-star]');if(s){var L2=find(+s.dataset.star);if(L2){L2.star=!L2.star;render();save();}}
+  });
+  function find(id){for(var i=0;i<lines.length;i++)if(lines[i].id===id)return lines[i];return null;}
+
+  function manualAdd(){var v=el('manual').value;if(v.trim()){addLine(v);el('manual').value='';}}
+  el('btnAdd').onclick=manualAdd;
+  el('manual').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd();});
+  el('mTitle').addEventListener('input',save);el('mDate').addEventListener('input',save);
+
+  function startTimer(){startTs=Date.now();timerInt=setInterval(function(){el('timer').textContent=tlabel(nowOffset());},500);}
+  function stopTimer(){if(startTs!==null){elapsed+=Math.floor((Date.now()-startTs)/1000);startTs=null;}clearInterval(timerInt);save();}
+
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  function setupRecog(){
+    recog=new SR();recog.lang='ru-RU';recog.continuous=true;recog.interimResults=true;
+    recog.onresult=function(e){var interim='';for(var i=e.resultIndex;i<e.results.length;i++){var r=e.results[i];if(r.isFinal)splitAdd(r[0].transcript);else interim+=r[0].transcript;}el('interim').textContent=interim;};
+    recog.onerror=function(e){if(e.error==='not-allowed'||e.error==='service-not-allowed'){banner('Микрофон заблокирован. Разреши доступ к микрофону в адресной строке браузера и нажми «Слушать» снова. Текст и протокол работают и без микрофона.');stopListen();}};
+    recog.onend=function(){if(listening){try{recog.start();}catch(_){}}};
+  }
+  function decideWho(){
+    if(!autoVoice||!analyser)return curWho;
+    var who=(uttMax>=voThresh)?speakers[0]:(speakers[1]||'Собеседник');uttMax=0;return who;
+  }
+  function splitAdd(t){t=t.trim();if(!t)return;var w=decideWho();t.split(/(?<=[\.\?!])\s+/).forEach(function(p){addLine(p,w);});el('interim').textContent='';}
+
+  function initMic(){
+    if(micStream||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      micStream=stream;
+      try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+        var src=audioCtx.createMediaStreamSource(stream);
+        analyser=audioCtx.createAnalyser();analyser.fftSize=512;src.connect(analyser);
+        voBuf=new Uint8Array(analyser.fftSize);volLoop();
+      }catch(_){}
+    }).catch(function(){});
+  }
+  function volLoop(){
+    if(!analyser)return;
+    analyser.getByteTimeDomainData(voBuf);
+    var s=0;for(var i=0;i<voBuf.length;i++){var v=(voBuf[i]-128)/128;s+=v*v;}
+    curVol=Math.sqrt(s/voBuf.length)*140;
+    if(listening&&curVol>uttMax)uttMax=curVol;
+    var bar=el('vbar');if(bar)bar.style.width=Math.min(100,curVol)+'%';
+    requestAnimationFrame(volLoop);
+  }
+
+  function startListen(){
+    if(!SR){banner('Этот браузер не умеет распознавать речь. Пользуйся ручным вводом — остальное работает. Лучше всего речь распознаёт Google Chrome.');return;}
+    if(!recog)setupRecog();
+    initMic();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+    try{recog.start();}catch(_){}
+    listening=true;el('btnRec').classList.add('live');el('recLbl').textContent='Стоп';el('wave').classList.add('on');el('status').textContent='Слушаю…';
+    if(startTs===null)startTimer();
+  }
+  function stopListen(){
+    listening=false;try{recog&&recog.stop();}catch(_){}
+    el('btnRec').classList.remove('live');el('recLbl').textContent='Слушать';el('wave').classList.remove('on');el('status').textContent='Пауза';el('interim').textContent='';
+    stopTimer();flushSave();
+  }
+  el('btnRec').onclick=function(){listening?stopListen():startListen();};
+  function banner(msg){var b=el('banner');b.textContent=msg;b.style.display='block';}
+
+  function buildProto(){
+    var title=el('mTitle').value.trim()||'Разговор',date=el('mDate').value.trim();
+    var ppl=speakers.join(', ');
+    var tasks=lines.filter(function(L){return L.type==='task';}),decs=lines.filter(function(L){return L.type==='dec';}),qs=lines.filter(function(L){return L.type==='q';}),stars=lines.filter(function(L){return L.star;});
+    var out='ПРОТОКОЛ — '+title+'\nДата: '+date+'\nУчастники: '+ppl+'\nДлительность: '+tlabel(nowOffset())+'\n';
+    out+='\nКРАТКО: реплик '+lines.length+' · задач '+tasks.length+' · решений '+decs.length+' · вопросов '+qs.length+(stars.length?' · важных '+stars.length:'')+'\n';
+    out+='\n──────────────────────────────\n';
+    out+='\n■ ЗАДАЧИ ('+tasks.length+')\n'+(tasks.length?tasks.map(function(L,i){return(i+1)+'. '+polishTask(L.text)+'   ['+L.who+', '+tlabel(L.t)+']';}).join('\n'):'— нет');
+    out+='\n\n■ РЕШЕНИЯ ('+decs.length+')\n'+(decs.length?decs.map(function(L,i){return(i+1)+'. '+tidy(L.text);}).join('\n'):'— нет');
+    out+='\n\n■ ВОПРОСЫ / НА УТОЧНЕНИЕ ('+qs.length+')\n'+(qs.length?qs.map(function(L,i){return(i+1)+'. '+tidy(L.text);}).join('\n'):'— нет');
+    if(stars.length)out+='\n\n■ ВАЖНОЕ ('+stars.length+')\n'+stars.map(function(L,i){return(i+1)+'. '+tidy(L.text);}).join('\n');
+    out+='\n\n──────────────────────────────\n\nПОЛНАЯ РАСШИФРОВКА\n'+lines.map(function(L){return '['+tlabel(L.t)+'] '+L.who+': '+L.text;}).join('\n');
+    return out;
+  }
+  el('btnProto').onclick=function(){var o=el('protoOut');o.style.display='block';o.textContent=buildProto();o.scrollIntoView({behavior:'smooth'});};
+  el('btnCopy').onclick=function(){var t=buildProto();navigator.clipboard&&navigator.clipboard.writeText(t);var b=el('btnCopy');b.textContent='Скопировано ✓';setTimeout(function(){b.textContent='Скопировать';},1500);};
+  el('btnDl').onclick=function(){var t=buildProto();var blob=new Blob([t],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Протокол_'+(el('mDate').value||'').replace(/\D/g,'')+'.txt';a.click();};
+  /* ── архив встреч ── */
+  function loadArch(){try{archive=JSON.parse(localStorage.getItem(ARCH)||'[]')||[];}catch(_){archive=[];}}
+  function saveArch(){try{localStorage.setItem(ARCH,JSON.stringify(archive));}catch(_){}}
+  function archCount(){var b=el('btnArch');if(b)b.textContent='🗂 Архив'+(archive.length?' ('+archive.length+')':'');}
+  function meetCounts(m){var t=0,d=0,q=0;(m.lines||[]).forEach(function(L){if(L.type==='task')t++;else if(L.type==='dec')d++;else if(L.type==='q')q++;});return{t:t,d:d,q:q};}
+  function archiveCurrent(){
+    if(!lines.length){alert('Лента пустая — нечего сохранять.');return;}
+    archive.unshift({id:Date.now(),title:(el('mTitle').value.trim()||'Разговор'),date:el('mDate').value,dur:nowOffset(),lines:lines.slice(),speakers:speakers.slice()});
+    saveArch();archCount();
+    var b=el('btnSaveMeet');b.textContent='✓ В архиве';setTimeout(function(){b.textContent='🗃 Сохранить встречу';},1500);
+  }
+  function findMeet(id){for(var i=0;i<archive.length;i++)if(archive[i].id===id)return archive[i];return null;}
+  function renderArchPanel(){
+    var box=el('archList');
+    if(!archive.length){box.innerHTML='<div style="color:var(--mut);font-size:13px">Пока пусто. Нажми «Сохранить встречу», чтобы отправить текущий разговор в архив.</div>';return;}
+    box.innerHTML=archive.map(function(m){var c=meetCounts(m);
+      return '<div class="archrow"><div class="ai"><b>'+esc(m.title)+'</b><span>'+esc(m.date||'')+' · '+tlabel(m.dur||0)+' · реплик '+(m.lines?m.lines.length:0)+' · задач '+c.t+' · решений '+c.d+'</span></div>'+
+        '<div class="ab"><button class="btn" data-open="'+m.id+'">Открыть</button><button class="btn" data-dl="'+m.id+'">Скачать .txt</button><button class="btn ghost" data-del="'+m.id+'">Удалить</button></div></div>';
+    }).join('');
+  }
+  function dlMeeting(m){
+    var sL=lines,sSp=speakers,sEl=elapsed,sT=el('mTitle').value,sD=el('mDate').value;
+    lines=m.lines;speakers=m.speakers||speakers;elapsed=m.dur||0;el('mTitle').value=m.title;el('mDate').value=m.date||'';
+    var txt=buildProto();
+    lines=sL;speakers=sSp;elapsed=sEl;el('mTitle').value=sT;el('mDate').value=sD;
+    var blob=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Протокол_'+(m.date||'').replace(/\D/g,'')+'_'+m.id+'.txt';a.click();
+  }
+  el('archList').addEventListener('click',function(e){
+    var o=e.target.closest('[data-open]');
+    if(o){var m=findMeet(+o.dataset.open);if(m){if(lines.length&&!confirm('Открыть встречу из архива? Текущая лента заменится. Если её ещё нет в архиве — сначала сохрани.'))return;
+      lines=(m.lines||[]).slice();seq=lines.reduce(function(a,L){return Math.max(a,L.id||0);},0);speakers=m.speakers?m.speakers.slice():speakers;elapsed=m.dur||0;
+      el('mTitle').value=m.title;el('mDate').value=m.date||'';el('timer').textContent=tlabel(elapsed);
+      syncPeopleField();renderSpeakers();render();el('archBox').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}return;}
+    var d=e.target.closest('[data-dl]');if(d){var m2=findMeet(+d.dataset.dl);if(m2)dlMeeting(m2);return;}
+    var x=e.target.closest('[data-del]');if(x){var id=+x.dataset.del;if(confirm('Удалить встречу из архива?')){archive=archive.filter(function(m){return m.id!==id;});saveArch();renderArchPanel();archCount();}}
+  });
+  el('btnSaveMeet').onclick=archiveCurrent;
+  el('btnArch').onclick=function(){var b=el('archBox');var show=b.style.display==='none';b.style.display=show?'block':'none';if(show){renderArchPanel();b.scrollIntoView({behavior:'smooth'});}};
+
+  el('autoVoice').addEventListener('change',function(){autoVoice=this.checked;if(autoVoice)initMic();el('status').textContent=autoVoice?'Авто-голос включён':(listening?'Слушаю…':'Пауза');});
+  el('vth').addEventListener('input',function(){voThresh=+this.value;});
+  el('btnImport').onclick=function(){var b=el('importBox');b.style.display=(b.style.display==='none')?'block':'none';if(b.style.display==='block')b.scrollIntoView({behavior:'smooth'});};
+  el('btnDoImport').onclick=function(){
+    var res=parseDiarized(el('importTa').value);
+    if(!res.lines.length){el('impMsg').textContent='Не нашёл реплик. Проверь формат: каждая строка вида «Говорящий 1: текст».';return;}
+    if(el('impReplace').checked){lines=[];seq=0;}
+    res.speakers.forEach(function(n){if(speakers.indexOf(n)<0)speakers.push(n);});
+    res.lines.forEach(function(r){lines.push({id:++seq,t:r.t,who:r.who,text:r.text,type:classify(r.text),star:false});});
+    syncPeopleField();renderSpeakers();render();save();
+    el('impMsg').textContent='Загружено реплик: '+res.lines.length+' · участников в записи: '+res.speakers.length+'. Имена «Говорящий 1/2» можно переименовать в поле «Участники».';
+    el('importTa').value='';
+  };
+  el('btnClear').onclick=function(){if(confirm('Очистить весь разговор? Сохранённая запись тоже удалится.')){lines=[];seq=0;elapsed=0;el('timer').textContent='00:00';el('status').textContent='Готов к записи';el('protoOut').style.display='none';try{localStorage.removeItem(KEY);}catch(_){}el('saveTxt').textContent='Автосохранение в браузере включено';render();}};
+
+  if(!load()){el('mDate').value=new Date().toLocaleDateString('ru-RU');}
+  loadArch();archCount();
+  syncPeopleField();renderSpeakers();render();save();
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
