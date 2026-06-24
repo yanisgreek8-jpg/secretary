@@ -169,6 +169,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
       <div class="vmeter" title="Уровень звука с микрофона"><span id="vbar"></span></div>
       <span class="vlbl">Порог</span>
       <input type="range" id="vth" min="4" max="50" value="16" class="vrange">
+      <button id="btnCal" class="btn" style="padding:6px 11px;font-size:12px">🎚 Калибровать голоса</button>
       <span class="vhint">тихо — собеседник · громко — я</span>
     </div>
   </div>
@@ -229,7 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   var KEY='meetingSecretary.v2';
   var lines=[], seq=0, startTs=null, elapsed=0, timerInt=null, recog=null, listening=false, canStore=true;
   var speakers=['Я','Собеседник'], curWho='Я';
-  var autoVoice=false, voThresh=16, curVol=0, uttMax=0, micStream=null, audioCtx=null, analyser=null, voBuf=null;
+  var autoVoice=false, voThresh=16, curVol=0, uttSum=0, uttN=0, micStream=null, audioCtx=null, analyser=null, voBuf=null;
   var ARCH='meetingSecretary.archive', archive=[];
 
   var PAL=[
@@ -423,7 +424,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   }
   function decideWho(){
     if(!autoVoice||!analyser)return curWho;
-    var who=(uttMax>=voThresh)?speakers[0]:(speakers[1]||'Собеседник');uttMax=0;return who;
+    var avg=uttN?uttSum/uttN:0;uttSum=0;uttN=0;
+    return (avg>=voThresh)?speakers[0]:(speakers[1]||'Собеседник');
+  }
+  function measure(ms,cb){var sum=0,n=0,t0=Date.now();(function loop(){if(curVol>4){sum+=curVol;n++;}if(Date.now()-t0<ms)requestAnimationFrame(loop);else cb(n?sum/n:0);})();}
+  function calibrate(){
+    if(!analyser){alert('Сначала нажми «Слушать» и разреши микрофон, потом калибруй.');return;}
+    alert('Калибровка голосов.\n\nНажми OK и говори 3 секунды СВОИМ голосом.');
+    measure(3000,function(my){
+      alert('Записал тебя. Нажми OK и пусть СОБЕСЕДНИК (телефон на громкой связи) говорит 3 секунды.');
+      measure(3000,function(ot){
+        var th=Math.round((my+ot)/2);if(th<3)th=3;voThresh=th;el('vth').value=th;
+        if(!autoVoice){el('autoVoice').checked=true;autoVoice=true;}
+        var msg='Порог настроен: '+th+'  (ты ≈ '+Math.round(my)+', собеседник ≈ '+Math.round(ot)+')';
+        if(Math.abs(my-ot)<3)msg+=' — громкости почти одинаковые, живьём делить будет ненадёжно. Точнее: запись + «Импорт расшифровки».';
+        el('status').textContent=msg;
+      });
+    });
   }
   function splitAdd(t){t=t.trim();if(!t)return;var w=decideWho();t.split(/(?<=[\.\?!])\s+/).forEach(function(p){addLine(p,w);});el('interim').textContent='';}
 
@@ -443,7 +460,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     analyser.getByteTimeDomainData(voBuf);
     var s=0;for(var i=0;i<voBuf.length;i++){var v=(voBuf[i]-128)/128;s+=v*v;}
     curVol=Math.sqrt(s/voBuf.length)*140;
-    if(listening&&curVol>uttMax)uttMax=curVol;
+    if(listening&&curVol>4){uttSum+=curVol;uttN++;}
     var bar=el('vbar');if(bar)bar.style.width=Math.min(100,curVol)+'%';
     requestAnimationFrame(volLoop);
   }
@@ -522,6 +539,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 
   el('autoVoice').addEventListener('change',function(){autoVoice=this.checked;if(autoVoice)initMic();el('status').textContent=autoVoice?'Авто-голос включён':(listening?'Слушаю…':'Пауза');});
   el('vth').addEventListener('input',function(){voThresh=+this.value;});
+  el('btnCal').onclick=calibrate;
   el('btnImport').onclick=function(){var b=el('importBox');b.style.display=(b.style.display==='none')?'block':'none';if(b.style.display==='block')b.scrollIntoView({behavior:'smooth'});};
   el('btnDoImport').onclick=function(){
     var res=parseDiarized(el('importTa').value);
