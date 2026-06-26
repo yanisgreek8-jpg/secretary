@@ -165,12 +165,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     </div>
     <div class="spkbar" id="spkbar"><span class="lbl">Кто говорит</span></div>
     <div class="vrow">
-      <label class="vchk"><input type="checkbox" id="autoVoice"> Различать мой голос по громкости</label>
-      <div class="vmeter" title="Уровень звука с микрофона"><span id="vbar"></span></div>
+      <label class="vchk"><input type="checkbox" id="autoVoice"> Различать мой голос (по тембру)</label>
+      <div class="vmeter" title="Тембр: тоньше → собеседник, полнее → вы"><span id="vbar"></span></div>
       <span class="vlbl">Порог</span>
-      <input type="range" id="vth" min="4" max="50" value="16" class="vrange">
+      <input type="range" id="vth" min="20" max="80" value="50" class="vrange">
       <button id="btnCal" class="btn" style="padding:6px 11px;font-size:12px">🎚 Калибровать голоса</button>
-      <span class="vhint">тихо — собеседник · громко — я</span>
+      <span class="vhint">тонкий голос (телефон) ← → полный (вы)</span>
     </div>
   </div>
   <div class="saveline" id="saveline"><span class="dotg"></span><span id="saveTxt">Автосохранение в браузере включено</span></div>
@@ -230,7 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   var KEY='meetingSecretary.v2';
   var lines=[], seq=0, startTs=null, elapsed=0, timerInt=null, recog=null, listening=false, canStore=true;
   var speakers=['Я','Собеседник'], curWho='Я';
-  var autoVoice=false, voThresh=16, curVol=0, uttSum=0, uttN=0, micStream=null, audioCtx=null, analyser=null, voBuf=null;
+  var autoVoice=false, lfThresh=0.5, meHigh=true, curVol=0, curLf=0, uttN=0, lfSum=0, micStream=null, audioCtx=null, analyser=null, voBuf=null, fdBuf=null;
   var ARCH='meetingSecretary.archive', archive=[];
 
   var PAL=[
@@ -424,20 +424,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   }
   function decideWho(){
     if(!autoVoice||!analyser)return curWho;
-    var avg=uttN?uttSum/uttN:0;uttSum=0;uttN=0;
-    return (avg>=voThresh)?speakers[0]:(speakers[1]||'Собеседник');
+    var lf=uttN?lfSum/uttN:-1;lfSum=0;uttN=0;
+    if(lf<0)return curWho;
+    var me=speakers[0],other=speakers[1]||'Собеседник';
+    var pickMe=meHigh?(lf>=lfThresh):(lf<lfThresh);
+    return pickMe?me:other;
   }
-  function measure(ms,cb){var sum=0,n=0,t0=Date.now();(function loop(){if(curVol>4){sum+=curVol;n++;}if(Date.now()-t0<ms)requestAnimationFrame(loop);else cb(n?sum/n:0);})();}
+  function measure(ms,cb){var vs=0,ls=0,n=0,t0=Date.now();(function loop(){if(curVol>5){vs+=curVol;ls+=curLf;n++;}if(Date.now()-t0<ms)requestAnimationFrame(loop);else cb({vol:n?vs/n:0,lf:n?ls/n:0,n:n});})();}
   function calibrate(){
     if(!analyser){alert('Сначала нажми «Слушать» и разреши микрофон, потом калибруй.');return;}
-    alert('Калибровка голосов.\n\nНажми OK и говори 3 секунды СВОИМ голосом.');
+    alert('Калибровка голосов.\n\nНажми OK и говори 3 секунды СВОИМ голосом — как обычно у макбука.');
     measure(3000,function(my){
-      alert('Записал тебя. Нажми OK и пусть СОБЕСЕДНИК (телефон на громкой связи) говорит 3 секунды.');
+      if(my.n<10){alert('Почти не услышал тебя. Говори ближе и громче, попробуй ещё раз.');return;}
+      alert('Записал тебя. Нажми OK и пусть СОБЕСЕДНИК говорит 3 секунды — поднеси телефон к макбуку, как в разговоре.');
       measure(3000,function(ot){
-        var th=Math.round((my+ot)/2);if(th<3)th=3;voThresh=th;el('vth').value=th;
+        if(ot.n<10){alert('Почти не услышал телефон. Сделай погромче, поднеси ближе, попробуй ещё раз.');return;}
+        lfThresh=(my.lf+ot.lf)/2;meHigh=my.lf>=ot.lf;el('vth').value=Math.round(lfThresh*100);
         if(!autoVoice){el('autoVoice').checked=true;autoVoice=true;}
-        var msg='Порог настроен: '+th+'  (ты ≈ '+Math.round(my)+', собеседник ≈ '+Math.round(ot)+')';
-        if(Math.abs(my-ot)<3)msg+=' — громкости почти одинаковые, живьём делить будет ненадёжно. Точнее: запись + «Импорт расшифровки».';
+        var diff=Math.abs(my.lf-ot.lf);
+        var msg='Готово. Тембр: ты ≈ '+Math.round(my.lf*100)+', собеседник ≈ '+Math.round(ot.lf*100)+'.';
+        msg+=diff<0.05?' Голоса по тембру почти не отличаются — живьём делить будет ненадёжно, точнее через запись + «Импорт».':' Различие хорошее — делю по тембру.';
         el('status').textContent=msg;
       });
     });
@@ -450,8 +456,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
       micStream=stream;
       try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();
         var src=audioCtx.createMediaStreamSource(stream);
-        analyser=audioCtx.createAnalyser();analyser.fftSize=512;src.connect(analyser);
-        voBuf=new Uint8Array(analyser.fftSize);volLoop();
+        analyser=audioCtx.createAnalyser();analyser.fftSize=2048;src.connect(analyser);
+        voBuf=new Uint8Array(analyser.fftSize);fdBuf=new Uint8Array(analyser.frequencyBinCount);volLoop();
       }catch(_){}
     }).catch(function(){});
   }
@@ -460,8 +466,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     analyser.getByteTimeDomainData(voBuf);
     var s=0;for(var i=0;i<voBuf.length;i++){var v=(voBuf[i]-128)/128;s+=v*v;}
     curVol=Math.sqrt(s/voBuf.length)*140;
-    if(listening&&curVol>4){uttSum+=curVol;uttN++;}
-    var bar=el('vbar');if(bar)bar.style.width=Math.min(100,curVol)+'%';
+    analyser.getByteFrequencyData(fdBuf);
+    var binHz=(audioCtx?audioCtx.sampleRate:48000)/analyser.fftSize;
+    var loEnd=Math.max(2,Math.round(350/binHz)),hiEnd=Math.round(3800/binHz),lo=0,hi=0;
+    for(var b=1;b<fdBuf.length;b++){if(b<=loEnd)lo+=fdBuf[b];else if(b<=hiEnd)hi+=fdBuf[b];}
+    curLf=(lo+hi)>0?lo/(lo+hi):0;
+    if(listening&&curVol>5){lfSum+=curLf;uttN++;}
+    var bar=el('vbar');if(bar)bar.style.width=Math.min(100,Math.round(curLf*100))+'%';
     requestAnimationFrame(volLoop);
   }
 
@@ -538,7 +549,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   el('btnArch').onclick=function(){var b=el('archBox');var show=b.style.display==='none';b.style.display=show?'block':'none';if(show){renderArchPanel();b.scrollIntoView({behavior:'smooth'});}};
 
   el('autoVoice').addEventListener('change',function(){autoVoice=this.checked;if(autoVoice)initMic();el('status').textContent=autoVoice?'Авто-голос включён':(listening?'Слушаю…':'Пауза');});
-  el('vth').addEventListener('input',function(){voThresh=+this.value;});
+  el('vth').addEventListener('input',function(){lfThresh=(+this.value)/100;});
   el('btnCal').onclick=calibrate;
   el('btnImport').onclick=function(){var b=el('importBox');b.style.display=(b.style.display==='none')?'block':'none';if(b.style.display==='block')b.scrollIntoView({behavior:'smooth'});};
   el('btnDoImport').onclick=function(){
