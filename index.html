@@ -134,6 +134,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .btn.primary:hover{background:var(--brand-d)}
 .btn.ghost{box-shadow:none;background:transparent;color:var(--mut)}
 #protoOut{display:none;margin-top:14px;white-space:pre-wrap;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;color:#222}
+.topcard{margin-top:16px}
+.topcard .head h2{display:flex;align-items:center;gap:7px}
+.topchips{display:flex;flex-wrap:wrap;gap:8px}
+.topchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--q-br);background:var(--q-bg);color:var(--q);border-radius:999px;padding:7px 8px 7px 13px;font-size:12.5px;font-weight:700}
+.topchip .ti{font-size:14px;line-height:1}
+.topchip .tn{background:#fff;color:var(--q);border-radius:999px;padding:1px 8px;font-size:11px;min-width:20px;text-align:center;font-weight:800}
+.topmore{font-size:12px;color:var(--mut);margin-top:12px;line-height:1.7}
+.topmore b{color:var(--ink);font-weight:700}
+.topempty{color:var(--mut);font-size:13px}
 </style>
 </head>
 <body>
@@ -196,6 +205,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     </div>
   </div>
 
+  <div class="card topcard">
+    <div class="head"><h2>🧭 О чём говорили<span class="count" id="cTopics">0</span></h2></div>
+    <div id="topicsBox"><div class="topempty">Темы появятся, когда наберётся разговор — секретарь сам определит, о чём шла речь.</div></div>
+  </div>
+
   <div class="foot">
     <button id="btnProto" class="btn primary">📋 Собрать протокол</button>
     <button id="btnSaveMeet" class="btn">🗃 Сохранить встречу</button>
@@ -252,6 +266,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     if(PASTDONE.test(t)&&!IMP.test(t))return'note';
     if(IMP.test(t)||TASKW.test(t))return'task';
     return'note';
+  }
+
+  /* ── определение тем разговора ── */
+  var TOPICS=[
+    {label:'Продажи и заказы',icon:'📈',re:/(продаж|заказ|отгруз|выручк|объ[её]м|план прода|реализац|сбыт|оборот)/i},
+    {label:'Производство и цех',icon:'🏭',re:/(производств|цех|выпечк|испеч|пек(?:ём|ем|арь|и)|тесто|печ[ьие]|смен[аы]|выработк|рецептур|линия|замес)/i},
+    {label:'Закупки и сырьё',icon:'📦',re:/(закупк|закуп(?:аем|ить)|сырь[её]|мук[аиу]|поставщик|ингредиент|остатк|дрожж|масло|сахар|склад)/i},
+    {label:'Логистика и доставка',icon:'🚚',re:/(доставк|логистик|маршрут|машин|водител|развоз|транспорт|экспедитор|рейс|фур)/i},
+    {label:'Клиенты и сети',icon:'🤝',re:/(клиент|сет[ьией]|магазин|контрагент|торгов\w* точ|ретейл|покупател|п[яa]т[её]рочк|магнит|перекр[её]ст|лент[аы]|дикси)/i},
+    {label:'Финансы и оплаты',icon:'💰',re:/(оплат|деньг|дебиторк|долг|сч[её]т|плат[её]ж|прибыл|маржа|рентабельн|бюджет|затрат|расход|касс|выручк)/i},
+    {label:'Цены и прайс',icon:'🏷️',re:/(цен[аыуе]|прайс|наценк|скидк|подорож|стоимост|тариф|дешевл|дорож)/i},
+    {label:'Ассортимент',icon:'🍞',re:/(ассортимент|номенклатур|позиц|новинк|лаваш|батон|хлеб|булочк|багет|продукц|sku|линейк)/i},
+    {label:'Качество и возвраты',icon:'⚠️',re:/(качеств|брак|возврат|списан|просрочк|рекламац|жалоб|претензи|свеж|порч)/i},
+    {label:'Персонал',icon:'👥',re:/(сотрудник|персонал|продажник|закупщик|менеджер|бригад|зарплат|на[её]м|нанят|увольн|график работ|кадр)/i},
+    {label:'Маркетинг и продвижение',icon:'📣',re:/(маркетинг|реклам|акци|промо|продвижен|соцсет|сайт|инстаграм|таргет|рассылк)/i},
+    {label:'Оборудование',icon:'🔧',re:/(оборудован|ремонт|поломк|сломал|техник|запчаст|агрегат|конвейер)/i},
+    {label:'Отчёты и аналитика',icon:'📊',re:/(отч[её]т|аналитик|дашборд|цифр|показател|метрик|статистик|kpi|сводк|таблиц)/i},
+    {label:'Автоматизация и IT',icon:'⚙️',re:/(автоматизац|\b1с\b|crm|supabase|make|интеграц|\bбот\b|телеграм|выгрузк|програм|приложени|систем)/i},
+    {label:'Сроки и планы',icon:'🗓️',re:/(срок|дедлайн|план(?:ы|ёр|ер|ировани)|график|до (?:понедельник|вторник|сред|четверг|пятниц|конца)|на след)/i}
+  ];
+  var STOP={};('это что как так для или она они оно был была было были есть нет это же бы ли не на по из от до за под над при без про чтобы если когда тогда потому очень можно нужно надо будет будем будут сейчас сегодня завтра вчера тоже также ещё уже вот ну там тут здесь который которая которые наш наша наши ваш мой его её их мы вы ты он она себя всё все весь вся один два три кстати типа короче давай давайте значит просто более менее такой такая такие этот эта эти того этого итог итоги').split(/\s+/).forEach(function(w){STOP[w]=1;});
+  function fullText(arr){return (arr||lines).map(function(L){return L.text||'';}).join(' ');}
+  function detectTopics(arr){
+    arr=arr||lines;
+    var dict=[];
+    TOPICS.forEach(function(tp){
+      var n=0;arr.forEach(function(L){if(tp.re.test(L.text||''))n++;});
+      if(n)dict.push({label:tp.label,icon:tp.icon,n:n});
+    });
+    dict.sort(function(a,b){return b.n-a.n;});
+    var freq={},txt=fullText(arr).toLowerCase();var m,re=/[а-яёa-z0-9-]{5,}/gi;
+    while((m=re.exec(txt))){var w=m[0];if(STOP[w]||/^\d+$/.test(w))continue;freq[w]=(freq[w]||0)+1;}
+    var more=Object.keys(freq).filter(function(w){return freq[w]>=3;}).sort(function(a,b){return freq[b]-freq[a];}).slice(0,8).map(function(w){return{w:w,n:freq[w]};});
+    return {dict:dict,more:more};
+  }
+  function renderTopics(){
+    var box=el('topicsBox'),cnt=el('cTopics');if(!box)return;
+    var t=detectTopics(lines);if(cnt)cnt.textContent=t.dict.length;
+    if(!lines.length||(!t.dict.length&&!t.more.length)){box.innerHTML='<div class="topempty">Темы появятся, когда наберётся разговор — секретарь сам определит, о чём шла речь.</div>';return;}
+    var html='';
+    if(t.dict.length){html+='<div class="topchips">'+t.dict.map(function(d){return '<span class="topchip"><span class="ti">'+d.icon+'</span>'+esc(d.label)+'<span class="tn">'+d.n+'</span></span>';}).join('')+'</div>';}
+    else{html+='<div class="topempty">Готовых тем не распознал — смотри ключевые слова ниже.</div>';}
+    if(t.more.length){html+='<div class="topmore">Ещё звучало: '+t.more.map(function(x){return '<b>'+esc(x.w)+'</b> ('+x.n+')';}).join(' · ')+'</div>';}
+    box.innerHTML=html;
   }
   function tlabel(s){var m=Math.floor(s/60),x=s%60;return(m<10?'0':'')+m+':'+(x<10?'0':'')+x;}
   function nowOffset(){if(startTs===null)return elapsed;return elapsed+Math.floor((Date.now()-startTs)/1000);}
@@ -384,6 +442,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   function refreshSummary(){
     el('cFeed').textContent=lines.length;
     bucket('task','bTask','cTask');bucket('dec','bDec','cDec');bucket('q','bQ','cQ');starBucket();
+    renderTopics();
   }
   var sumT=null,saveT=null;
   function scheduleSummary(){if(sumT)return;sumT=setTimeout(function(){sumT=null;refreshSummary();queueSave();},700);}
@@ -498,7 +557,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     var tasks=lines.filter(function(L){return L.type==='task';}),decs=lines.filter(function(L){return L.type==='dec';}),qs=lines.filter(function(L){return L.type==='q';}),stars=lines.filter(function(L){return L.star;});
     var out='ПРОТОКОЛ — '+title+'\nДата: '+date+'\nУчастники: '+ppl+'\nДлительность: '+tlabel(nowOffset())+'\n';
     out+='\nКРАТКО: реплик '+lines.length+' · задач '+tasks.length+' · решений '+decs.length+' · вопросов '+qs.length+(stars.length?' · важных '+stars.length:'')+'\n';
-    out+='\n──────────────────────────────\n';
+    var tp=detectTopics(lines);
+    out+='\nО ЧЁМ ГОВОРИЛИ: '+(tp.dict.length?tp.dict.map(function(d){return d.label+' ('+d.n+')';}).join(' · '):'тема не определена');
+    if(tp.more.length)out+='\nЕщё звучало: '+tp.more.map(function(x){return x.w+' ('+x.n+')';}).join(', ');
+    out+='\n\n──────────────────────────────\n';
     out+='\n■ ЗАДАЧИ ('+tasks.length+')\n'+(tasks.length?tasks.map(function(L,i){return(i+1)+'. '+polishTask(L.text)+'   ['+L.who+', '+tlabel(L.t)+']';}).join('\n'):'— нет');
     out+='\n\n■ РЕШЕНИЯ ('+decs.length+')\n'+(decs.length?decs.map(function(L,i){return(i+1)+'. '+tidy(L.text);}).join('\n'):'— нет');
     out+='\n\n■ ВОПРОСЫ / НА УТОЧНЕНИЕ ('+qs.length+')\n'+(qs.length?qs.map(function(L,i){return(i+1)+'. '+tidy(L.text);}).join('\n'):'— нет');
@@ -525,7 +587,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     var box=el('archList');
     if(!archive.length){box.innerHTML='<div style="color:var(--mut);font-size:13px">Пока пусто. Нажми «Сохранить встречу», чтобы отправить текущий разговор в архив.</div>';return;}
     box.innerHTML=archive.map(function(m){var c=meetCounts(m);
-      return '<div class="archrow"><div class="ai"><b>'+esc(m.title)+'</b><span>'+esc(m.date||'')+' · '+tlabel(m.dur||0)+' · реплик '+(m.lines?m.lines.length:0)+' · задач '+c.t+' · решений '+c.d+'</span></div>'+
+      var mt=detectTopics(m.lines||[]).dict.slice(0,3).map(function(d){return d.icon+' '+d.label;}).join(' · ');
+      return '<div class="archrow"><div class="ai"><b>'+esc(m.title)+'</b><span>'+esc(m.date||'')+' · '+tlabel(m.dur||0)+' · реплик '+(m.lines?m.lines.length:0)+' · задач '+c.t+' · решений '+c.d+'</span>'+(mt?'<span>'+esc(mt)+'</span>':'')+'</div>'+
         '<div class="ab"><button class="btn" data-open="'+m.id+'">Открыть</button><button class="btn" data-dl="'+m.id+'">Скачать .txt</button><button class="btn ghost" data-del="'+m.id+'">Удалить</button></div></div>';
     }).join('');
   }
